@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+
+	<!-- DispatcherServlet은 하위 컨트롤러에 대한 결정을 짓기 위해 직접 분석하지 않고, HandlerMapping에게 
+		시키므로, 개발자가 사용할 핸들러 매핑을 결정지어야 한다.. 결정짓지 않으면? DefaultAnnotationHadnlerMapping 
+		자동으로 등록된다! -->
+	<bean id="handlerMapping"
+		class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
+
+	<!-- 하위 컨트롤러가 요청 처리 완료 후, 저장결과 및 뷰에 대한 정보를 ModelAndView로 반환하는데, 이 반환된 객체를 
+		분석하여 어떤 뷰를 보여줄지 결정을 지으려면 DispatcherServlet 은 직접 분석하지 않고, ViewResolver를 통해 
+		분석하게되고, 이 분석후 알맞는 뷰페이지를 보여주게 된다.. -->
+
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+		p:prefix="/" p:suffix=".jsp" />
+
+	<!-- 빈 등록원칙을 따르다 보면, 너무나 많은 빈 태그가 등록될것이고, 유지보수성이 저하된다...따라서 자동 등록 기능을 이용해보자 -->
+	<context:component-scan
+		base-package="com.it">
+	</context:component-scan>
+
+	<!-- 데이터베이스 연동 관련 빈 -->
+	<jee:jndi-lookup id="dataSource"
+		jndi-name="jdbc/oracle" resource-ref="true" />
+
+	<!-- 스프링이 지원하는 데이터베이스 연동 기술을 사용하는 결정적 이유? 트랜잭션을 자동으로 처리해준다!! 따라서 현재 사용중인 
+		기술에 알맞는 트랜잭션 메니져를 등록해야한다!! JDBC,ibatis,mybatis : DataSourceTransactionManager 
+		Hibernate : HibernateTransctionManager.. -->
+	<bean id="dataSourceTransactionManager" p:dataSource-ref="dataSource"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager" />
+
+	<!-- 순수한 mybatis가 아니라, 스프링에서 사용할 수 있는 Mybatis를 사용할경우 기존의 쿼라문 수행시 우리가 사용했던 
+		SqlSession을 그대로 사용하는 것이 아니라, SqlSession을 패핑시켜높은 SqlSessionTemplate을 이용해야한다!! 
+		주의) SqlSessionTeamplate은 SqlSessionFactoryBean으로 얻는다 -->
+	<bean id="sqlSessionFactoryBean"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="configLocation"
+			value="classpath:com/it/mybatis/config.xml"></property>
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactoryBean"></constructor-arg>
+	</bean>
+
+</beans>
